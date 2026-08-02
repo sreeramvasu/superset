@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__github__*",
+      "read",
+      "write",
+      "edit",
+      "exec",
+      "grep",
+      "glob",
+      "find_file_by_name"
+    ],
+    "deny": [
+      "mcp__github__delete_repo",
+      "mcp__github__delete_branch"
+    ]
+  },
+  "permission_mode": "accept-edits",
+  "model": "auto",
+  "export": "devin-session.json"
+}

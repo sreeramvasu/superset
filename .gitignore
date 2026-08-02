@@ -142,3 +142,9 @@ PROJECT.md
 oxc-custom-build/
 *.code-workspace
 *.duckdb
+
+# Devin automation
+.devin/mcp_config.local.json
+.devin/api_config.json
+devin-session*.json
+.devin/session*.json
