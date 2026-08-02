@@ -1,0 +1,198 @@
+name: Devin Auto-Fix Automation (API)
+
+on:
+  issues:
+    types:
+      - labeled
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to process'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  devin-autofix:
+    if: |
+      github.event.label.name == 'autofix-devin' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install requests
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "Devin Bot"
+          git config --global user.email "devin-bot@users.noreply.github.com"
+
+      - name: Setup Devin API Configuration
+        run: |
+          mkdir -p .devin
+          cat > .devin/api_config.json << EOF
+          {
+            "api_key": "${{ secrets.DEVIN_API_KEY }}",
+            "org_id": "${{ secrets.DEVIN_ORG_ID }}",
+            "base_url": "https://api.devin.ai/v3",
+            "timeout": 600,
+            "poll_interval": 10,
+            "max_poll_attempts": 180
+          }
+          EOF
+
+      - name: Setup MCP Configuration
+        run: |
+          mkdir -p .devin
+          cat > .devin/mcp_config.local.json << 'EOF'
+          {
+            "mcpServers": {
+              "github": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-github"],
+                "env": {
+                  "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Get Issue Details
+        id: get_issue
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            ISSUE_NUMBER="${{ github.event.inputs.issue_number }}"
+          else
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+          fi
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "Processing issue #$ISSUE_NUMBER"
+
+      - name: Create Devin Skill
+        run: |
+          mkdir -p .devin/skills/superset-autofix
+          cat > .devin/skills/superset-autofix/SKILL.md << 'EOF'
+          ---
+          name: superset-autofix
+          description: Automatically fix Apache Superset issues following project guidelines
+          ---
+
+          You are an automated remediation agent for Apache Superset. Your task is to fix GitHub issues systematically.
+
+          ## Process
+          1. Read and understand the GitHub issue carefully
+          2. Create a feature branch named "feature/ISSUE_NUMBER"
+          3. Analyze the codebase to identify the problem
+          4. Implement the fix following AGENTS.md guidelines:
+             - Use @superset-ui/core components, not direct antd imports
+             - Add proper TypeScript types (no 'any')
+             - Follow existing code patterns
+             - Run pre-commit before finalizing
+          5. Test the changes if possible
+          6. Commit changes with descriptive messages
+          7. Push the branch to remote
+          8. Create a pull request
+          9. Add "fixed-by-devin" label to the issue
+          10. Comment on the issue with PR link
+
+          ## Guidelines
+          - Always reference the original issue in commit messages and PR description
+          - Follow Apache Superset coding standards
+          - Be thorough in testing and validation
+          - Provide observable outputs for technical audience
+          - If you encounter obstacles, document them clearly
+          EOF
+
+      - name: Run Devin API Auto-Fix
+        id: devin_fix
+        run: |
+          ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
+          ISSUE_URL="${{ github.server_url }}/${{ github.repository }}/issues/$ISSUE_NUMBER"
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+          
+          echo "Starting Devin API auto-fix for issue: $ISSUE_URL"
+          echo "=========================================="
+          
+          # Run the API-based automation script
+          python .devin/scripts/devin_api_autofix.py \
+            --issue-number $ISSUE_NUMBER \
+            --issue-url $ISSUE_URL \
+            --repo-url $REPO_URL \
+            --branch-name "feature/$ISSUE_NUMBER"
+          
+          echo "=========================================="
+          echo "Devin API session completed"
+
+      - name: Upload Devin Session Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devin-api-session-logs
+          path: .devin/logs/
+          retention-days: 30
+
+      - name: Add fixed-by-devin label
+        if: success()
+        run: |
+          ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
+          gh label create "fixed-by-devin" --color "00ff00" || true
+          gh issue edit $ISSUE_NUMBER --add-label "fixed-by-devin"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on issue with results
+        if: always()
+        run: |
+          ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
+          
+          if [ "${{ steps.devin_fix.outcome }}" == "success" ]; then
+            COMMENT="✅ **Devin API Auto-Fix Completed**
+            
+          I've successfully processed this issue and created a pull request with the fix.
+          
+          **Branch:** \`feature/$ISSUE_NUMBER\`
+          **Status:** Changes implemented and PR created
+          
+          Please review the PR and provide feedback."
+          else
+            COMMENT="❌ **Devin API Auto-Fix Failed**
+            
+          I encountered issues while trying to fix this issue automatically.
+          
+          **Issue:** $ISSUE_NUMBER
+          **Status:** Processing failed
+          
+          Please check the workflow logs for details and consider fixing this manually."
+          fi
+          
+          gh issue comment $ISSUE_NUMBER --body "$COMMENT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          # Remove sensitive config files
+          rm -f .devin/api_config.json
+          rm -f .devin/mcp_config.local.json
