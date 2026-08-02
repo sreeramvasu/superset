@@ -20,14 +20,23 @@ from flask_appbuilder.api import expose
 from flask_appbuilder.security.decorators import has_access
 
 from superset import is_feature_enabled
+from superset.daos.report import ReportScheduleDAO
 from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView
 
-# TODO: access control rules for this module
-
 
 class BaseAlertReportView(BaseSupersetView):
+    """
+    Legacy HTML views serving the alerts & reports SPA.
+
+    Access control follows the model documented in ``SECURITY.md``: route-level
+    authorization through ``@has_access`` against the ``ReportSchedule``
+    permissions, plus ownership scoping through ``ReportScheduleFilter``, the
+    base filter of ``ReportScheduleDAO``, whenever a route addresses a specific
+    report schedule.
+    """
+
     route_base = "/report"
     class_permission_name = "ReportSchedule"
 
@@ -42,8 +51,13 @@ class BaseAlertReportView(BaseSupersetView):
     @expose("/<pk>/log/", methods=("GET",))
     @has_access
     @permission_name("read")
-    def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+    def log(self, pk: str) -> FlaskResponse:
         if not is_feature_enabled("ALERT_REPORTS"):
+            return abort(404)
+
+        # the DAO base filter scopes the lookup to the report schedules the
+        # current user is entitled to see, so unrelated ids resolve to a 404
+        if ReportScheduleDAO.find_by_id(pk) is None:
             return abort(404)
 
         return super().render_app_template()
