@@ -24,7 +24,15 @@ from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView
 
-# TODO: access control rules for this module
+# Access control for alerts and reports is enforced at the route level through
+# the ``@has_access`` decorator combined with the ``ReportSchedule`` permission
+# (``class_permission_name``). These views only render the SPA shell and do not
+# return or mutate report objects directly; the underlying data is served by
+# ``ReportScheduleRestApi``, which applies ``@protect()`` route-level checks and
+# ownership scoping via ``ReportScheduleFilter`` ``base_filters``. Per the
+# security model documented in ``SECURITY.md``, reports rely on route-level
+# authorization plus DAO ``base_filters`` rather than object-level
+# ``security_manager.raise_for_access`` calls.
 
 
 class BaseAlertReportView(BaseSupersetView):
