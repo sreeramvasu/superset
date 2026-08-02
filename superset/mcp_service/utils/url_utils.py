@@ -35,7 +35,8 @@ def _is_local_url(url: str) -> bool:
     try:
         parsed = urlparse(url)
         return parsed.hostname in LOCAL_HOSTNAMES if parsed.hostname else True
-    except Exception:
+    except ValueError:
+        logger.warning("Unable to parse URL %r; assuming it is local", url)
         return True
 
 
@@ -53,7 +54,13 @@ def get_superset_base_url() -> str:
         if user_friendly_url := config["WEBDRIVER_BASEURL_USER_FRIENDLY"]:
             return user_friendly_url.rstrip("/")
         return default_url
-    except Exception:
+    except (KeyError, RuntimeError):
+        logger.warning(
+            "Unable to read WEBDRIVER_BASEURL_USER_FRIENDLY from the app config; "
+            "falling back to %s",
+            default_url,
+            exc_info=True,
+        )
         return default_url
 
 

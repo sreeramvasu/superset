@@ -232,11 +232,18 @@ class AbstractEventLogger(ABC):
         if log_to_statsd:
             stats_logger_manager.instance.incr(action)
 
+        explode_by = payload.get("explode")
         try:
             # bulk insert
-            explode_by = payload.get("explode")
             records = json.loads(payload.get(explode_by))  # type: ignore
         except Exception:  # pylint: disable=broad-except
+            logger.debug(
+                "Unable to explode the payload of action %s by %r; logging it as a "
+                "single record",
+                action,
+                explode_by,
+                exc_info=True,
+            )
             records = [payload]
 
         self.log(
@@ -401,6 +408,12 @@ class DBEventLogger(AbstractEventLogger):
             try:
                 json_string = json.dumps(record)
             except Exception:  # pylint: disable=broad-except
+                logger.warning(
+                    "Unable to serialize the payload of action %s; the log entry "
+                    "will be stored without it",
+                    action,
+                    exc_info=True,
+                )
                 json_string = None
             log = Log(
                 action=action,

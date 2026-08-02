@@ -851,6 +851,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             try:
                 engines[database_obj.id] = database_obj.backend
             except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Unable to resolve the backend of database %s; "
+                    "treating it as unknown",
+                    database_obj.id,
+                    exc_info=True,
+                )
                 engines[database_obj.id] = ""
         return engines
 

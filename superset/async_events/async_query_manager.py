@@ -81,6 +81,12 @@ def increment_id(entry_id: str) -> str:
         prefix, last = entry_id[:-1], int(entry_id[-1])
         return prefix + str(last + 1)
     except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "Unable to increment the Redis stream entry id %r; events may be "
+            "delivered more than once",
+            entry_id,
+            exc_info=True,
+        )
         return entry_id
 
 

@@ -470,10 +470,14 @@ class SecretsMigrator:
             if not provably_authenticated:
                 try:
                     target_type.process_result_value(raw_value, self._dialect)
-                except (  # noqa: S110  # pylint: disable=broad-except
-                    Exception  # noqa: BLE001
-                ):
-                    pass
+                except Exception:  # noqa: BLE001  # pylint: disable=broad-except
+                    logger.debug(
+                        "Column [%s.%s] cannot be read under the target engine; "
+                        "treating it as not yet migrated",
+                        table_name,
+                        column_name,
+                        exc_info=True,
+                    )
                 else:
                     stats.skipped += 1
                     continue

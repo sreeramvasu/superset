@@ -17,16 +17,19 @@
 
 """User-resolution helper shared by MCP core list/get tools."""
 
+import logging
 from typing import Optional
 
+from flask import g
 from flask_appbuilder.security.sqla.models import User
+
+logger = logging.getLogger(__name__)
 
 
 def get_current_user() -> Optional[User]:
     """Get the current authenticated user."""
     try:
-        from flask import g
-
         return getattr(g, "user", None)
-    except Exception:
+    except RuntimeError:
+        logger.debug("No application context; unable to resolve the current user")
         return None

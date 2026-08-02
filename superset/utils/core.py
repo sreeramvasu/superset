@@ -976,7 +976,12 @@ def send_mime_email(
         try:
             smtp.quit()
         except smtplib.SMTPException:
-            pass
+            logger.warning(
+                "Unable to cleanly close the SMTP connection to %s:%s",
+                smtp_host,
+                smtp_port,
+                exc_info=True,
+            )
 
 
 def recipients_string_to_list(address_string: str | None) -> list[str]:

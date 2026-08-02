@@ -19,6 +19,7 @@
 /* eslint-disable camelcase */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { logging } from '@apache-superset/core/utils';
 import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { editors } from '@apache-superset/core';
@@ -429,7 +430,9 @@ function AdhocMetricEditPopover({
   if (datasource?.extra && typeof datasource.extra === 'string') {
     try {
       extra = JSON.parse(datasource.extra) as ExtraConfig;
-    } catch {} // eslint-disable-line no-empty
+    } catch (error) {
+      logging.warn('Unable to parse the datasource extra config', error);
+    }
   }
 
   return (

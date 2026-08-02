@@ -83,7 +83,9 @@ def calculate_dashboard_breakdown(
             without_charts=dashboards_without_charts,
         )
     except Exception:
-        # Return empty breakdown on error
+        logger.exception(
+            "Failed to calculate dashboard breakdown; reporting zeroed metrics"
+        )
         return DashboardBreakdown(
             published=0,
             unpublished=0,
@@ -119,7 +121,9 @@ def calculate_database_breakdown(
 
         return DatabaseBreakdown(by_type=type_counts)
     except Exception:
-        # Return empty breakdown on error
+        logger.exception(
+            "Failed to calculate database breakdown; reporting zeroed metrics"
+        )
         return DatabaseBreakdown(by_type={})
 
 
@@ -155,7 +159,9 @@ def calculate_instance_summary(
             avg_charts_per_dashboard=round(avg_charts_per_dashboard, 2),
         )
     except Exception:
-        # Return empty summary on error
+        logger.exception(
+            "Failed to calculate instance summary; reporting zeroed metrics"
+        )
         return InstanceSummary(
             total_dashboards=0,
             total_charts=0,

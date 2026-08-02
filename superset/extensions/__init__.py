@@ -52,6 +52,8 @@ from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 from superset.utils.profiler import SupersetProfiler
 
+logger = logging.getLogger(__name__)
+
 # Apply MariaDB DDL fix early in the import chain
 try:
     apply_mariadb_ddl_fix()
@@ -128,8 +130,20 @@ class UIManifestProcessor:
                 # templates
                 full_manifest = json.load(f)
                 self.manifest = full_manifest.get("entrypoints", {})
-        except Exception:  # pylint: disable=broad-except  # noqa: S110
-            pass
+        except OSError:
+            # Without the manifest every template renders without its JS/CSS
+            # bundles, so a blank UI must not be diagnosable only by guesswork.
+            logger.warning(
+                "Unable to read the UI manifest at %s; the frontend assets will "
+                "not be served. Have the assets been built?",
+                self.manifest_file,
+            )
+        except (json.JSONDecodeError, AttributeError):
+            logger.exception(
+                "The UI manifest at %s is malformed; the frontend assets will "
+                "not be served",
+                self.manifest_file,
+            )
 
     def get_manifest_files(self, bundle: str, asset_type: str) -> list[str]:
         if self.app and self.app.debug:

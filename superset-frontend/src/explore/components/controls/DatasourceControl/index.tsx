@@ -19,6 +19,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import { logging } from '@apache-superset/core/utils';
 import { DatasourceType, SupersetClient, Datasource } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -328,7 +329,9 @@ export default function DatasourceControl({
     if (typeof datasource.extra === 'string') {
       try {
         extra = JSON.parse(datasource.extra);
-      } catch {} // eslint-disable-line no-empty
+      } catch (error) {
+        logging.warn('Unable to parse the datasource extra config', error);
+      }
     } else {
       extra = datasource.extra; // eslint-disable-line prefer-destructuring
     }
