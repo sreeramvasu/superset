@@ -20,6 +20,7 @@ from flask_appbuilder.api import expose
 from flask_appbuilder.security.decorators import has_access
 
 from superset import is_feature_enabled
+from superset.daos.report import ReportScheduleDAO
 from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView
@@ -50,8 +51,13 @@ class BaseAlertReportView(BaseSupersetView):
     @expose("/<pk>/log/", methods=("GET",))
     @has_access
     @permission_name("read")
-    def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+    def log(self, pk: int) -> FlaskResponse:
         if not is_feature_enabled("ALERT_REPORTS"):
+            return abort(404)
+
+        # Scope the report to what the current user is allowed to see, so that
+        # the log page is not rendered for reports owned by other users.
+        if not ReportScheduleDAO.find_by_id(pk):
             return abort(404)
 
         return super().render_app_template()
