@@ -24,10 +24,18 @@ from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView
 
-# TODO: access control rules for this module
-
 
 class BaseAlertReportView(BaseSupersetView):
+    """
+    Shell views that render the alerts and reports SPA.
+
+    These routes return no report data: authorization for the underlying
+    resources is enforced by ``ReportScheduleRestApi``, which combines the
+    route-level ``@protect()`` decorator with the ``ReportScheduleFilter``
+    base filter for ownership scoping. Route-level access here is gated by
+    ``@has_access`` against the ``ReportSchedule`` view menu.
+    """
+
     route_base = "/report"
     class_permission_name = "ReportSchedule"
 
