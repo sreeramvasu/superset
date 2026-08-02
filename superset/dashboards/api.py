@@ -153,7 +153,6 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
-from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -174,6 +173,8 @@ from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    get_form_data_json,
+    get_import_ssh_tunnel_credentials,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -2315,38 +2316,14 @@ class DashboardRestApi(
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
-        overwrite = request.form.get("overwrite") == "true"
-        overwrite_all = parse_boolean_string(request.form.get("overwrite_all", "false"))
-
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
-        )
-
         command = ImportDashboardsCommand(
             contents,
-            passwords=passwords,
-            overwrite=overwrite,
-            overwrite_all=overwrite_all,
-            ssh_tunnel_passwords=ssh_tunnel_passwords,
-            ssh_tunnel_private_keys=ssh_tunnel_private_keys,
-            ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            passwords=get_form_data_json("passwords"),
+            overwrite=request.form.get("overwrite") == "true",
+            overwrite_all=parse_boolean_string(
+                request.form.get("overwrite_all", "false")
+            ),
+            **get_import_ssh_tunnel_credentials(),
         )
         command.run()
         return self.response(200, message="OK")

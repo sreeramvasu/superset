@@ -54,10 +54,11 @@ from superset.queries.saved_queries.schemas import (
     openapi_spec_methods_override,
     validate_label,
 )
-from superset.utils import json
 from superset.utils.core import sanitize_cookie_token
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    get_form_data_json,
+    get_import_ssh_tunnel_credentials,
     RelatedFieldFilter,
     requires_form_data,
     statsd_metrics,
@@ -406,35 +407,11 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
-        overwrite = request.form.get("overwrite") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
-        )
-
         command = ImportSavedQueriesCommand(
             contents,
-            passwords=passwords,
-            overwrite=overwrite,
-            ssh_tunnel_passwords=ssh_tunnel_passwords,
-            ssh_tunnel_private_keys=ssh_tunnel_private_keys,
-            ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            passwords=get_form_data_json("passwords"),
+            overwrite=request.form.get("overwrite") == "true",
+            **get_import_ssh_tunnel_credentials(),
         )
         command.run()
         return self.response(200, message="OK")

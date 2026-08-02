@@ -47,6 +47,7 @@ from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.core import get_user_id, time_function
 from superset.views.error_handling import handle_api_exception
 
@@ -114,6 +115,31 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
         return f(self, *args, **kwargs)
 
     return functools.update_wrapper(wraps, f)
+
+
+def get_form_data_json(key: str) -> Any:
+    """
+    Parse a JSON encoded field from a 'multipart/form-data' request.
+
+    :param key: The form field name
+    :returns: The decoded payload, or None when the field is absent
+    """
+    return json.loads(request.form[key]) if key in request.form else None
+
+
+def get_import_ssh_tunnel_credentials() -> dict[str, Any]:
+    """
+    Read the SSH tunnel credentials sent along with an import payload.
+
+    :returns: Keyword arguments for the import commands
+    """
+    return {
+        "ssh_tunnel_passwords": get_form_data_json("ssh_tunnel_passwords"),
+        "ssh_tunnel_private_keys": get_form_data_json("ssh_tunnel_private_keys"),
+        "ssh_tunnel_priv_key_passwords": get_form_data_json(
+            "ssh_tunnel_private_key_passwords"
+        ),
+    }
 
 
 def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
