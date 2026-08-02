@@ -163,7 +163,7 @@ def _parse_partial_config(
         logger.debug(
             "Strict validation of a partial %s configuration failed; retrying "
             "leniently",
-            config_class.__name__,
+            config_class,
             exc_info=True,
         )
 
@@ -173,7 +173,7 @@ def _parse_partial_config(
         logger.warning(
             "Unable to validate a partial %s configuration even leniently; "
             "discarding it",
-            config_class.__name__,
+            config_class,
             exc_info=True,
         )
         return None
