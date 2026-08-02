@@ -152,12 +152,23 @@ jobs:
           path: .devin/logs/
           retention-days: 30
 
-      - name: Add fixed-by-devin label
-        if: success()
+      - name: Add status label
+        if: always()
         run: |
           ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
-          gh label create "fixed-by-devin" --color "00ff00" || true
-          gh issue edit $ISSUE_NUMBER --add-label "fixed-by-devin"
+          
+          # Create labels if they don't exist
+          gh label create "fixed-by-devin" --color "00ff00" --description "Issue fixed by Devin API automation" || true
+          gh label create "devin-failed" --color "ff0000" --description "Devin API automation failed" || true
+          
+          # Add appropriate label based on outcome
+          if [ "${{ steps.devin_fix.outcome }}" == "success" ]; then
+            gh issue edit $ISSUE_NUMBER --add-label "fixed-by-devin"
+            gh issue edit $ISSUE_NUMBER --remove-label "devin-failed" || true
+          else
+            gh issue edit $ISSUE_NUMBER --add-label "devin-failed"
+            gh issue edit $ISSUE_NUMBER --remove-label "fixed-by-devin" || true
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -167,26 +178,10 @@ jobs:
           ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
           
           if [ "${{ steps.devin_fix.outcome }}" == "success" ]; then
-            COMMENT="✅ **Devin API Auto-Fix Completed**
-            
-          I've successfully processed this issue and created a pull request with the fix.
-          
-          **Branch:** \`feature/$ISSUE_NUMBER\`
-          **Status:** Changes implemented and PR created
-          
-          Please review the PR and provide feedback."
+            gh issue comment $ISSUE_NUMBER --body "Devin API Auto-Fix Completed successfully. Branch: feature/$ISSUE_NUMBER"
           else
-            COMMENT="❌ **Devin API Auto-Fix Failed**
-            
-          I encountered issues while trying to fix this issue automatically.
-          
-          **Issue:** $ISSUE_NUMBER
-          **Status:** Processing failed
-          
-          Please check the workflow logs for details and consider fixing this manually."
+            gh issue comment $ISSUE_NUMBER --body "Devin API Auto-Fix Failed. Check workflow logs for details."
           fi
-          
-          gh issue comment $ISSUE_NUMBER --body "$COMMENT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
