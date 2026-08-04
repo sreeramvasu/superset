@@ -11,6 +11,7 @@ import os
 import json
 import time
 import requests
+import subprocess
 from typing import Optional, Dict, List, Any, Tuple
 from pathlib import Path
 
@@ -236,7 +237,9 @@ class DevinAPIClient:
     def wait_for_completion(
         self, 
         session_id: str,
-        timeout: Optional[int] = None
+        timeout: Optional[int] = None,
+        repo_url: Optional[str] = None,
+        branch: Optional[str] = None
     ) -> tuple[bool, Optional[str]]:
         """
         Wait for a session to complete by polling for messages
@@ -244,6 +247,8 @@ class DevinAPIClient:
         Args:
             session_id: Devin session ID
             timeout: Custom timeout in seconds
+            repo_url: Repository URL (for GitHub API fallback)
+            branch: Branch name (for GitHub API fallback)
             
         Returns:
             Tuple of (success: bool, pr_url: Optional[str])
@@ -304,6 +309,14 @@ class DevinAPIClient:
                                 print("PR created successfully - marking session as successful")
                                 return (True, found_pr_url)
                         
+                        # Fallback: Check GitHub API for PR if no messages for a while
+                        if not found_pr_url and poll_count > 5 and (poll_count % 5 == 0):
+                            print(f"Poll #{poll_count}: Checking GitHub API for PR on branch...")
+                            pr_url = self._check_github_for_pr(repo_url or "https://github.com/sreeramvasu/superset", branch or "feature/default")
+                            if pr_url:
+                                print(f"✓ PR found via GitHub API: {pr_url}")
+                                return (True, pr_url)
+                        
                         # Check for completion indicators in this message
                         content_lower = content.lower()
                         if any(indicator in content_lower for indicator in [
@@ -328,6 +341,42 @@ class DevinAPIClient:
         
         print(f"Timeout reached after {int(time.time() - start_time)}s")
         return (False, found_pr_url)
+    
+    def _check_github_for_pr(self, repo_url: str, branch: str) -> Optional[str]:
+        """
+        Check GitHub API for PR on the given branch (fallback mechanism)
+        
+        Args:
+            repo_url: Repository URL
+            branch: Branch name to check
+            
+        Returns:
+            PR URL if found, None otherwise
+        """
+        try:
+            import subprocess
+            
+            # Extract owner and repo from URL
+            parts = repo_url.replace("https://github.com/", "").split("/")
+            owner = parts[0]
+            repo = parts[1]
+            
+            # Use gh CLI to check for PRs on this branch
+            result = subprocess.run(
+                ["gh", "pr", "list", "--head", branch, "--json", "url", "--limit", "1"],
+                capture_output=True,
+                text=True,
+                env={**os.environ, "GH_TOKEN": os.environ.get("GITHUB_TOKEN")}
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                pr_data = json.loads(result.stdout)
+                if pr_data:
+                    return pr_data[0].get("url")
+        except Exception as e:
+            print(f"Error checking GitHub API for PR: {e}")
+        
+        return None
     
     def _extract_pr_url(self, text: str) -> Optional[str]:
         """

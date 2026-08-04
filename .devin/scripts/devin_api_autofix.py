@@ -313,7 +313,11 @@ At the end, provide:
             logger.info(f"Session ID: {self.session_id}")
             logger.info(f"You can monitor progress at: https://app.devin.ai/sessions/{self.session_id}")
             
-            success, pr_url = self.client.wait_for_completion(self.session_id)
+            success, pr_url = self.client.wait_for_completion(
+                self.session_id,
+                repo_url=repo_url,
+                branch=branch_name
+            )
             
             # Check if PR URL was found even if session timed out
             if pr_url:
@@ -410,13 +414,19 @@ At the end, provide:
             result: Result dictionary
             issue_number: Issue number
         """
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        log_file = self.logs_dir / f"devin-api-result-{issue_number}-{timestamp}.json"
-        
-        with open(log_file, 'w') as f:
-            json.dump(result, f, indent=2)
-        
-        logger.info(f"Result saved to {log_file}")
+        try:
+            # Ensure logs directory exists
+            self.logs_dir.mkdir(parents=True, exist_ok=True)
+            
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            log_file = self.logs_dir / f"devin-api-result-{issue_number}-{timestamp}.json"
+            
+            with open(log_file, 'w') as f:
+                json.dump(result, f, indent=2)
+            
+            logger.info(f"Result saved to {log_file}")
+        except Exception as e:
+            logger.error(f"Failed to save result to log file: {e}")
 
 
 def main():
