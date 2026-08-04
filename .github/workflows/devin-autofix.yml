@@ -126,6 +126,8 @@ jobs:
 
       - name: Run Devin API Auto-Fix
         id: devin_fix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
           ISSUE_URL="${{ github.server_url }}/${{ github.repository }}/issues/$ISSUE_NUMBER"
