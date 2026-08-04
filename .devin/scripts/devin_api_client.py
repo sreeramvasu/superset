@@ -295,6 +295,9 @@ class DevinAPIClient:
                             found_pr_url = self._extract_pr_url(content)
                             if found_pr_url:
                                 print(f"✓ PR URL found: {found_pr_url}")
+                                # PR creation is our success condition - we can stop polling
+                                print("PR created successfully - marking session as successful")
+                                return (True, found_pr_url)
                         
                         # Check for completion indicators in this message
                         content_lower = content.lower()
