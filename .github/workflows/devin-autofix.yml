@@ -152,23 +152,16 @@ jobs:
           path: .devin/logs/
           retention-days: 30
 
-      - name: Add status label
-        if: always()
+      - name: Add fixed-by-devin label
+        if: success()
         run: |
           ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
           
-          # Create labels if they don't exist
+          # Create label if it doesn't exist
           gh label create "fixed-by-devin" --color "00ff00" --description "Issue fixed by Devin API automation" || true
-          gh label create "devin-failed" --color "ff0000" --description "Devin API automation failed" || true
           
-          # Add appropriate label based on outcome
-          if [ "${{ steps.devin_fix.outcome }}" == "success" ]; then
-            gh issue edit $ISSUE_NUMBER --add-label "fixed-by-devin"
-            gh issue edit $ISSUE_NUMBER --remove-label "devin-failed" || true
-          else
-            gh issue edit $ISSUE_NUMBER --add-label "devin-failed"
-            gh issue edit $ISSUE_NUMBER --remove-label "fixed-by-devin" || true
-          fi
+          # Add success label
+          gh issue edit $ISSUE_NUMBER --add-label "fixed-by-devin"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
