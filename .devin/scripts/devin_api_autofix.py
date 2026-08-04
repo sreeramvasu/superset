@@ -313,11 +313,7 @@ At the end, provide:
             logger.info(f"Session ID: {self.session_id}")
             logger.info(f"You can monitor progress at: https://app.devin.ai/sessions/{self.session_id}")
             
-            success, pr_url = self.client.wait_for_completion(
-                self.session_id,
-                repo_url=repo_url,
-                branch_name=branch_name
-            )
+            success, pr_url = self.client.wait_for_completion(self.session_id)
             
             # Check if PR URL was found even if session timed out
             if pr_url:
