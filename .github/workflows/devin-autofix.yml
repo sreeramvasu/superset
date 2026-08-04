@@ -152,16 +152,38 @@ jobs:
           path: .devin/logs/
           retention-days: 30
 
-      - name: Add fixed-by-devin label
-        if: success()
+      - name: Check for PR creation
+        id: check_pr
+        if: always()
         run: |
           ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
+          
+          # Check if the automation step produced a PR URL in the logs
+          echo "Checking for PR creation in Devin session output..."
+          
+          # Save issue number for next steps
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add fixed-by-devin label if PR created
+        if: steps.check_pr.outputs.issue_number != ''
+        run: |
+          ISSUE_NUMBER="${{ steps.check_pr.outputs.issue_number }}"
           
           # Create label if it doesn't exist
           gh label create "fixed-by-devin" --color "00ff00" --description "Issue fixed by Devin API automation" || true
           
-          # Add success label
-          gh issue edit $ISSUE_NUMBER --add-label "fixed-by-devin"
+          # Check the latest comment to see if it contains a PR URL
+          LATEST_COMMENT=$(gh issue view $ISSUE_NUMBER --comments --json body --jq '.[-1].body')
+          
+          # Only add label if comment contains a PR URL (github.com/pull/)
+          if echo "$LATEST_COMMENT" | grep -q "github.com/pull/"; then
+            echo "PR URL found in comment - adding fixed-by-devin label"
+            gh issue edit $ISSUE_NUMBER --add-label "fixed-by-devin"
+          else
+            echo "No PR URL found in comment - skipping label"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
