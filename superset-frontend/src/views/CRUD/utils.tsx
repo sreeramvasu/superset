@@ -20,6 +20,7 @@
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
+  JsonObject,
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,
@@ -47,15 +48,25 @@ import {
   TableTab,
 } from './types';
 
+type AddDangerToast = (message: string, description?: unknown) => void;
+
+// Validation error returned by the import endpoints, whose `extra` maps a
+// file name to the failure reported for that file.
+export interface ImportErrorObject {
+  extra: Record<string, unknown> | null;
+}
+
+interface RisonInternals {
+  not_idchar: string;
+  not_idstart: string;
+  id_ok: RegExp;
+  next_id: RegExp;
+}
+
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
 (() => {
-  const risonRef: {
-    not_idchar: string;
-    not_idstart: string;
-    id_ok: RegExp;
-    next_id: RegExp;
-  } = rison as any;
+  const risonRef = rison as unknown as RisonInternals;
 
   const l = [];
   for (let hi = 0; hi < 16; hi += 1) {
@@ -214,7 +225,7 @@ export const getUserEditableObjects = (
   }).then(res => res.json?.result);
 
 export const getFilteredChartsandDashboards = (
-  addDangerToast: (arg1: string, arg2: any) => any,
+  addDangerToast: AddDangerToast,
   filters: Filter[],
   dashboardSelectColumns?: string[],
   chartSelectColumns?: string[],
@@ -246,11 +257,11 @@ export const getFilteredChartsandDashboards = (
 export const getRecentActivityObjs = (
   userId: string | number,
   recent: string,
-  addDangerToast: (arg1: string, arg2: any) => any,
+  addDangerToast: AddDangerToast,
   filters: Filter[],
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
-    const res: any = {};
+    const res: JsonObject = {};
     const distinctRes = lruCache<RecentActivity>(6);
     recentsRes.json.result.reverse().forEach((record: RecentActivity) => {
       distinctRes.set(record.item_url, record);
@@ -471,76 +482,74 @@ export const CardStyles = styled.div`
   }
 `;
 
-export /* eslint-disable no-underscore-dangle */
-const isNeedsPassword = (payload: any) =>
-  typeof payload === 'object' &&
-  Array.isArray(payload._schema) &&
-  !!payload._schema?.find(
-    (e: string) => e === 'Must provide a password for the database',
+// Marshmallow reports import validation failures under a ``_schema`` key.
+const getSchemaMessages = (payload: unknown): string[] => {
+  if (typeof payload !== 'object' || payload === null) {
+    return [];
+  }
+  // eslint-disable-next-line no-underscore-dangle
+  const { _schema: schema } = payload as { _schema?: unknown };
+  if (!Array.isArray(schema)) {
+    return [];
+  }
+  return schema.filter((e): e is string => typeof e === 'string');
+};
+
+export const isNeedsPassword = (payload: unknown) =>
+  getSchemaMessages(payload).includes(
+    'Must provide a password for the database',
   );
 
-export /* eslint-disable no-underscore-dangle */
-const isNeedsSSHPassword = (payload: any) =>
-  typeof payload === 'object' &&
-  Array.isArray(payload._schema) &&
-  !!payload._schema?.find(
-    (e: string) => e === 'Must provide a password for the ssh tunnel',
+export const isNeedsSSHPassword = (payload: unknown) =>
+  getSchemaMessages(payload).includes(
+    'Must provide a password for the ssh tunnel',
   );
 
-export /* eslint-disable no-underscore-dangle */
-const isNeedsSSHPrivateKey = (payload: any) =>
-  typeof payload === 'object' &&
-  Array.isArray(payload._schema) &&
-  !!payload._schema?.find(
-    (e: string) => e === 'Must provide a private key for the ssh tunnel',
+export const isNeedsSSHPrivateKey = (payload: unknown) =>
+  getSchemaMessages(payload).includes(
+    'Must provide a private key for the ssh tunnel',
   );
 
-export /* eslint-disable no-underscore-dangle */
-const isNeedsSSHPrivateKeyPassword = (payload: any) =>
-  typeof payload === 'object' &&
-  Array.isArray(payload._schema) &&
-  !!payload._schema?.find(
-    (e: string) =>
-      e === 'Must provide a private key password for the ssh tunnel',
+export const isNeedsSSHPrivateKeyPassword = (payload: unknown) =>
+  getSchemaMessages(payload).includes(
+    'Must provide a private key password for the ssh tunnel',
   );
 
-export const isAlreadyExists = (payload: any) =>
+export const isAlreadyExists = (payload: unknown) =>
   typeof payload === 'string' &&
   payload.includes('already exists and `overwrite=true` was not passed');
 
-export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
+export const getPasswordsNeeded = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    Object.entries(error.extra ?? {})
       .filter(([, payload]) => isNeedsPassword(payload))
       .map(([fileName]) => fileName),
   );
 
-export const getSSHPasswordsNeeded = (errors: Record<string, any>[]) =>
+export const getSSHPasswordsNeeded = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    Object.entries(error.extra ?? {})
       .filter(([, payload]) => isNeedsSSHPassword(payload))
       .map(([fileName]) => fileName),
   );
 
-export const getSSHPrivateKeysNeeded = (errors: Record<string, any>[]) =>
+export const getSSHPrivateKeysNeeded = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    Object.entries(error.extra ?? {})
       .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
       .map(([fileName]) => fileName),
   );
 
-export const getSSHPrivateKeyPasswordsNeeded = (
-  errors: Record<string, any>[],
-) =>
+export const getSSHPrivateKeyPasswordsNeeded = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    Object.entries(error.extra ?? {})
       .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
       .map(([fileName]) => fileName),
   );
 
-export const getAlreadyExists = (errors: Record<string, any>[]) =>
+export const getAlreadyExists = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    Object.entries(error.extra ?? {})
       .filter(([, payload]) => isAlreadyExists(payload))
       .map(([fileName]) => fileName),
   );
@@ -551,35 +560,32 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
 const ENCRYPTED_EXTRA_FIELD_REGEX =
   /^Must provide value for masked_encrypted_extra field: (.+?)(?:\s+\((.+)\))?$/;
 
-export /* eslint-disable no-underscore-dangle */
-const isNeedsEncryptedExtraField = (payload: any) =>
-  typeof payload === 'object' &&
-  Array.isArray(payload._schema) &&
-  payload._schema?.some((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e));
+export const isNeedsEncryptedExtraField = (payload: unknown) =>
+  getSchemaMessages(payload).some(e => ENCRYPTED_EXTRA_FIELD_REGEX.test(e));
 
 export const getEncryptedExtraFieldsNeeded = (
-  errors: Record<string, any>[],
+  errors: ImportErrorObject[],
 ): FileEncryptedExtraFields[] =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    Object.entries(error.extra ?? {})
       .filter(([, payload]) => isNeedsEncryptedExtraField(payload))
       .map(([fileName, payload]) => ({
         fileName,
-        fields: (payload as any)._schema
-          .filter((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e))
-          .map((e: string) => {
+        fields: getSchemaMessages(payload)
+          .filter(e => ENCRYPTED_EXTRA_FIELD_REGEX.test(e))
+          .map(e => {
             const match = e.match(ENCRYPTED_EXTRA_FIELD_REGEX);
             if (!match) return null;
             const path = match[1];
             return { path, label: match[2] || path };
           })
-          .filter(Boolean) as EncryptedExtraField[],
+          .filter((field): field is EncryptedExtraField => field !== null),
       })),
   );
 
-export const hasTerminalValidation = (errors: Record<string, any>[]) =>
+export const hasTerminalValidation = (errors: ImportErrorObject[]) =>
   errors.some(error => {
-    const noIssuesCodes = Object.entries(error.extra).filter(
+    const noIssuesCodes = Object.entries(error.extra ?? {}).filter(
       ([key]) => key !== 'issue_codes',
     );
 

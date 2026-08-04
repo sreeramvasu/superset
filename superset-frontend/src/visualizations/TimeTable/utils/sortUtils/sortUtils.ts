@@ -18,6 +18,36 @@
  */
 import type { ColumnConfig, Entry } from '../../types';
 import { calculateCellValue } from '../valueCalculations/valueCalculations';
+
+/**
+ * Both ValueCell and Sparkline cells pass React elements to the sorter.
+ * ValueCell provides the precomputed value directly, while Sparkline provides
+ * the data required to calculate it.
+ */
+interface SortableCell {
+  props?: {
+    value?: number | null;
+    valueField?: string;
+    column?: ColumnConfig;
+    entries?: Entry[];
+  };
+}
+
+/** Minimal shape of the react-table row required for sorting. */
+interface SortableRow {
+  values?: Record<string, SortableCell | undefined>;
+}
+
+type SortableValue = number | string | null | undefined;
+
+/**
+ * Coerces a cell value to a finite number, or null when it is not numeric.
+ */
+function toComparableNumber(value: SortableValue): number | null {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  return num === null || num === undefined || Number.isNaN(num) ? null : num;
+}
+
 /**
  * Simple numeric value comparison that handles null, undefined, and mixed types
  * @param a - First value to compare
@@ -26,19 +56,16 @@ import { calculateCellValue } from '../valueCalculations/valueCalculations';
  * @returns Numeric comparison result
  */
 function compareValues(
-  a: any,
-  b: any,
+  a: SortableValue,
+  b: SortableValue,
   nanTreatment: 'asSmallest' | 'asLargest' | 'alwaysLast' = 'asSmallest',
 ): number {
-  const numA = typeof a === 'string' ? parseFloat(a) : a;
-  const numB = typeof b === 'string' ? parseFloat(b) : b;
+  const numA = toComparableNumber(a);
+  const numB = toComparableNumber(b);
 
-  const isAValid = numA !== null && numA !== undefined && !Number.isNaN(numA);
-  const isBValid = numB !== null && numB !== undefined && !Number.isNaN(numB);
-
-  if (!isAValid && !isBValid) return 0;
-  if (!isAValid) return nanTreatment === 'asSmallest' ? -1 : 1;
-  if (!isBValid) return nanTreatment === 'asSmallest' ? 1 : -1;
+  if (numA === null && numB === null) return 0;
+  if (numA === null) return nanTreatment === 'asSmallest' ? -1 : 1;
+  if (numB === null) return nanTreatment === 'asSmallest' ? 1 : -1;
 
   return numA - numB;
 }
@@ -54,34 +81,15 @@ function compareValues(
  * this function, so we only return the raw comparison result.
  */
 export function sortNumberWithMixedTypes(
-  rowA: any,
-  rowB: any,
+  rowA: SortableRow,
+  rowB: SortableRow,
   columnId: string,
 ) {
   const cellA = rowA.values?.[columnId];
   const cellB = rowB.values?.[columnId];
 
-  // Both ValueCell and Sparkline cells pass React elements here.
-  // ValueCell provides the precomputed value directly.
-  // Sparkline provides { valueField, column, entries } and requires
-  // calculating the sortable value from its entries.
-  const propsA = cellA?.props as
-    | {
-        value?: number | null;
-        valueField?: string;
-        column?: ColumnConfig;
-        entries?: Entry[];
-      }
-    | undefined;
-
-  const propsB = cellB?.props as
-    | {
-        value?: number | null;
-        valueField?: string;
-        column?: ColumnConfig;
-        entries?: Entry[];
-      }
-    | undefined;
+  const propsA = cellA?.props;
+  const propsB = cellB?.props;
 
   if (!propsA || !propsB) {
     return 0;
