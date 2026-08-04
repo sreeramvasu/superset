@@ -235,7 +235,7 @@ class DevinObservability:
 </head>
 <body>
     <div class="dashboard">
-        <h1>🤖 Devin Automation Observability Dashboard</h1>
+        <h1>Devin Automation Observability Dashboard</h1>
         <p>Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         
         <div class="stats-grid">
@@ -265,7 +265,7 @@ class DevinObservability:
             </div>
         </div>
         
-        <h2>📊 Time Period Analysis</h2>
+        <h2>Time Period Analysis</h2>
         <div class="time-period">
             <strong>Last 24 Hours:</strong> {stats['last_24h']['total']} sessions, 
             {stats['last_24h']['successful']} successful, {stats['last_24h']['pr_created']} PRs created
@@ -279,13 +279,13 @@ class DevinObservability:
             {stats['last_30d']['successful']} successful, {stats['last_30d']['pr_created']} PRs created
         </div>
         
-        <h2>📋 Recent Sessions</h2>
+        <h2>Recent Sessions</h2>
         <div class="session-list">
 """
         
         for session in stats['recent_sessions']:
             status_class = "success" if session['success'] else "failure"
-            status_text = "✅ Success" if session['success'] else "❌ Failed"
+            status_text = "Success" if session['success'] else "Failed"
             
             html += f"""
             <div class="session-item {status_class}">
@@ -295,7 +295,7 @@ class DevinObservability:
             
             if session.get('pr_url'):
                 html += f"""
-                <div class="session-pr">🔗 PR: <a href="{session['pr_url']}" target="_blank">{session['pr_url']}</a></div>
+                <div class="session-pr">PR: <a href="{session['pr_url']}" target="_blank">{session['pr_url']}</a></div>
 """
             
             if session.get('error'):
@@ -329,8 +329,8 @@ class DevinObservability:
         with open(self.stats_file, 'w') as f:
             json.dump(stats, f, indent=2, default=str)
         
-        print(f"📊 Dashboard generated: {dashboard_file}")
-        print(f"📈 Stats saved: {self.stats_file}")
+        print(f"Dashboard generated: {dashboard_file}")
+        print(f"Stats saved: {self.stats_file}")
         
         return str(dashboard_file)
     
@@ -339,13 +339,13 @@ class DevinObservability:
         stats = self.collect_stats()
         
         print("\n" + "="*50)
-        print("🤖 DEVIN AUTOMATION OBSERVABILITY SUMMARY")
+        print("DEVIN AUTOMATION OBSERVABILITY SUMMARY")
         print("="*50)
-        print(f"📊 Total Sessions: {stats['total_sessions']}")
-        print(f"✅ Successful: {stats['successful_sessions']} ({stats['success_rate']:.1f}%)")
-        print(f"❌ Failed: {stats['failed_sessions']}")
-        print(f"🔗 PRs Created: {stats['pr_created']} ({stats['pr_creation_rate']:.1f}%)")
-        print("\n📈 Time Period Analysis:")
+        print(f"Total Sessions: {stats['total_sessions']}")
+        print(f"Successful: {stats['successful_sessions']} ({stats['success_rate']:.1f}%)")
+        print(f"Failed: {stats['failed_sessions']}")
+        print(f"PRs Created: {stats['pr_created']} ({stats['pr_creation_rate']:.1f}%)")
+        print("\nTime Period Analysis:")
         print(f"   Last 24h: {stats['last_24h']['total']} sessions, {stats['last_24h']['successful']} success, {stats['last_24h']['pr_created']} PRs")
         print(f"   Last 7d:  {stats['last_7d']['total']} sessions, {stats['last_7d']['successful']} success, {stats['last_7d']['pr_created']} PRs")
         print(f"   Last 30d: {stats['last_30d']['total']} sessions, {stats['last_30d']['successful']} success, {stats['last_30d']['pr_created']} PRs")
@@ -360,13 +360,13 @@ def main():
     
     observability = DevinObservability(logs_dir)
     
-    print("🔍 Collecting Devin automation statistics...")
+    print("Collecting Devin automation statistics...")
     observability.print_summary()
     
-    print("📊 Generating HTML dashboard...")
+    print("Generating HTML dashboard...")
     dashboard_path = observability.generate_dashboard()
     
-    print(f"✅ Dashboard ready! Open it in your browser: {dashboard_path}")
+    print(f"Dashboard ready! Open it in your browser: {dashboard_path}")
 
 
 if __name__ == "__main__":
