@@ -262,7 +262,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: any | null;
+  error: Record<string, string[] | string> | null;
 }
 
 export function useSingleViewResource<
@@ -789,6 +789,12 @@ export const testDatabaseConnection = (
   );
 };
 
+type DatabaseValidationError = {
+  error_type: string;
+  message: string;
+  extra?: JsonObject;
+};
+
 export function useAvailableDatabases() {
   const [availableDbs, setAvailableDbs] = useState<JsonObject | null>(null);
 
@@ -850,7 +856,7 @@ export function useDatabaseValidation() {
         if (typeof error.json === 'function') {
           return error.json().then(({ errors = [] }) => {
             const parsedErrors = errors
-              .filter((err: { error_type: string; extra?: JsonObject }) => {
+              .filter((err: DatabaseValidationError) => {
                 const allowed = [
                   'CONNECTION_MISSING_PARAMETERS_ERROR',
                   'CONNECTION_ACCESS_DENIED_ERROR',
@@ -864,7 +870,7 @@ export function useDatabaseValidation() {
                 if (err.extra?.ssh_tunnel) return true;
                 return allowed.includes(err.error_type) || onCreate;
               })
-              .reduce((acc: JsonObject, err2: any) => {
+              .reduce((acc: JsonObject, err2: DatabaseValidationError) => {
                 const { message, extra } = err2;
 
                 if (extra?.catalog) {
@@ -953,7 +959,7 @@ export function useDatabaseValidation() {
 }
 
 export const reportSelector = (
-  state: Record<string, any>,
+  state: Record<string, JsonObject>,
   resourceType: string,
   resourceId?: number,
 ) => {
