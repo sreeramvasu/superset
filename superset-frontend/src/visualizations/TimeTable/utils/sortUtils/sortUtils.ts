@@ -18,6 +18,14 @@
  */
 import type { ColumnConfig, Entry } from '../../types';
 import { calculateCellValue } from '../valueCalculations/valueCalculations';
+
+/**
+ * Row shape provided by react-table, whose cell values are React elements
+ * rendered by ValueCell or Sparkline.
+ */
+interface SortableRow {
+  values?: Record<string, { props?: unknown } | undefined>;
+}
 /**
  * Simple numeric value comparison that handles null, undefined, and mixed types
  * @param a - First value to compare
@@ -26,21 +34,21 @@ import { calculateCellValue } from '../valueCalculations/valueCalculations';
  * @returns Numeric comparison result
  */
 function compareValues(
-  a: any,
-  b: any,
+  a: number | string | null | undefined,
+  b: number | string | null | undefined,
   nanTreatment: 'asSmallest' | 'asLargest' | 'alwaysLast' = 'asSmallest',
 ): number {
   const numA = typeof a === 'string' ? parseFloat(a) : a;
   const numB = typeof b === 'string' ? parseFloat(b) : b;
 
-  const isAValid = numA !== null && numA !== undefined && !Number.isNaN(numA);
-  const isBValid = numB !== null && numB !== undefined && !Number.isNaN(numB);
+  const validA = numA != null && !Number.isNaN(numA) ? numA : undefined;
+  const validB = numB != null && !Number.isNaN(numB) ? numB : undefined;
 
-  if (!isAValid && !isBValid) return 0;
-  if (!isAValid) return nanTreatment === 'asSmallest' ? -1 : 1;
-  if (!isBValid) return nanTreatment === 'asSmallest' ? 1 : -1;
+  if (validA === undefined && validB === undefined) return 0;
+  if (validA === undefined) return nanTreatment === 'asSmallest' ? -1 : 1;
+  if (validB === undefined) return nanTreatment === 'asSmallest' ? 1 : -1;
 
-  return numA - numB;
+  return validA - validB;
 }
 
 /**
@@ -54,8 +62,8 @@ function compareValues(
  * this function, so we only return the raw comparison result.
  */
 export function sortNumberWithMixedTypes(
-  rowA: any,
-  rowB: any,
+  rowA: SortableRow,
+  rowB: SortableRow,
   columnId: string,
 ) {
   const cellA = rowA.values?.[columnId];
