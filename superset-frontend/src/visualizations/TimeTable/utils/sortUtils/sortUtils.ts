@@ -18,6 +18,17 @@
  */
 import type { ColumnConfig, Entry } from '../../types';
 import { calculateCellValue } from '../valueCalculations/valueCalculations';
+
+type CellProps = {
+  value?: number | null;
+  valueField?: string;
+  column?: ColumnConfig;
+  entries?: Entry[];
+};
+
+type SortableRow = {
+  values?: Record<string, { props?: CellProps } | undefined>;
+};
 /**
  * Simple numeric value comparison that handles null, undefined, and mixed types
  * @param a - First value to compare
@@ -26,8 +37,8 @@ import { calculateCellValue } from '../valueCalculations/valueCalculations';
  * @returns Numeric comparison result
  */
 function compareValues(
-  a: any,
-  b: any,
+  a: number | string | null | undefined,
+  b: number | string | null | undefined,
   nanTreatment: 'asSmallest' | 'asLargest' | 'alwaysLast' = 'asSmallest',
 ): number {
   const numA = typeof a === 'string' ? parseFloat(a) : a;
@@ -54,8 +65,8 @@ function compareValues(
  * this function, so we only return the raw comparison result.
  */
 export function sortNumberWithMixedTypes(
-  rowA: any,
-  rowB: any,
+  rowA: SortableRow,
+  rowB: SortableRow,
   columnId: string,
 ) {
   const cellA = rowA.values?.[columnId];
@@ -65,23 +76,8 @@ export function sortNumberWithMixedTypes(
   // ValueCell provides the precomputed value directly.
   // Sparkline provides { valueField, column, entries } and requires
   // calculating the sortable value from its entries.
-  const propsA = cellA?.props as
-    | {
-        value?: number | null;
-        valueField?: string;
-        column?: ColumnConfig;
-        entries?: Entry[];
-      }
-    | undefined;
-
-  const propsB = cellB?.props as
-    | {
-        value?: number | null;
-        valueField?: string;
-        column?: ColumnConfig;
-        entries?: Entry[];
-      }
-    | undefined;
+  const propsA = cellA?.props;
+  const propsB = cellB?.props;
 
   if (!propsA || !propsB) {
     return 0;
