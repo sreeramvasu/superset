@@ -197,7 +197,8 @@ You are an automated remediation agent for Apache Superset. Your task is to fix 
 6. Commit changes with descriptive messages using conventional commit format
 7. Push the branch to remote
 8. Create a pull request using GitHub MCP tools
-9. Report the PR URL in your final response
+9. **IMPORTANT: Immediately after creating the PR, send a message with the exact PR URL in this format: "PR created: https://github.com/owner/repo/pull/NUMBER"**
+10. Report the PR URL in your final response
 
 ## Efficiency Guidelines (IMPORTANT)
 - SKIP running full installation commands (npm install, pip install) unless absolutely necessary
@@ -312,7 +313,11 @@ At the end, provide:
             logger.info(f"Session ID: {self.session_id}")
             logger.info(f"You can monitor progress at: https://app.devin.ai/sessions/{self.session_id}")
             
-            success, pr_url = self.client.wait_for_completion(self.session_id)
+            success, pr_url = self.client.wait_for_completion(
+                self.session_id,
+                repo_url=repo_url,
+                branch_name=branch_name
+            )
             
             # Check if PR URL was found even if session timed out
             if pr_url:
