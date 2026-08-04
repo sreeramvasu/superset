@@ -1850,8 +1850,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     let alertErrors: string[] = [];
     if (!isEmpty(dbErrors)) {
       alertErrors =
-        typeof dbErrors === 'object'
-          ? Object.values(dbErrors)
+        dbErrors && typeof dbErrors === 'object'
+          ? Object.values(dbErrors).flat()
           : typeof dbErrors === 'string'
             ? [dbErrors]
             : [];

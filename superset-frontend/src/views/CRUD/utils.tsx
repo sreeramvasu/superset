@@ -482,8 +482,12 @@ export const CardStyles = styled.div`
 type SchemaErrorPayload = { _schema: string[] };
 
 type ImportErrorObject = {
-  extra: Record<string, unknown>;
+  extra: Record<string, unknown> | null;
 };
+
+/** Import error payloads, keyed by the file they belong to. */
+const getErrorPayloads = (error: ImportErrorObject): [string, unknown][] =>
+  Object.entries(error.extra ?? {});
 
 const hasSchemaErrors = (payload: unknown): payload is SchemaErrorPayload =>
   typeof payload === 'object' &&
@@ -518,35 +522,35 @@ export const isAlreadyExists = (payload: unknown) =>
 
 export const getPasswordsNeeded = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    getErrorPayloads(error)
       .filter(([, payload]) => isNeedsPassword(payload))
       .map(([fileName]) => fileName),
   );
 
 export const getSSHPasswordsNeeded = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    getErrorPayloads(error)
       .filter(([, payload]) => isNeedsSSHPassword(payload))
       .map(([fileName]) => fileName),
   );
 
 export const getSSHPrivateKeysNeeded = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    getErrorPayloads(error)
       .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
       .map(([fileName]) => fileName),
   );
 
 export const getSSHPrivateKeyPasswordsNeeded = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    getErrorPayloads(error)
       .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
       .map(([fileName]) => fileName),
   );
 
 export const getAlreadyExists = (errors: ImportErrorObject[]) =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    getErrorPayloads(error)
       .filter(([, payload]) => isAlreadyExists(payload))
       .map(([fileName]) => fileName),
   );
@@ -566,7 +570,7 @@ export const getEncryptedExtraFieldsNeeded = (
   errors: ImportErrorObject[],
 ): FileEncryptedExtraFields[] =>
   errors.flatMap(error =>
-    Object.entries(error.extra)
+    getErrorPayloads(error)
       .filter(([, payload]) => isNeedsEncryptedExtraField(payload))
       .map(([fileName, payload]) => ({
         fileName,
@@ -584,7 +588,7 @@ export const getEncryptedExtraFieldsNeeded = (
 
 export const hasTerminalValidation = (errors: ImportErrorObject[]) =>
   errors.some(error => {
-    const noIssuesCodes = Object.entries(error.extra).filter(
+    const noIssuesCodes = getErrorPayloads(error).filter(
       ([key]) => key !== 'issue_codes',
     );
 

@@ -262,7 +262,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: Record<string, string[] | string> | null;
+  error: string | Record<string, string[] | string> | null;
 }
 
 export function useSingleViewResource<
@@ -407,7 +407,7 @@ export function useSingleViewResource<
             }
 
             updateState({
-              error: errMsg,
+              error: errMsg ?? null,
             });
 
             return errMsg;
