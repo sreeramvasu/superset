@@ -1848,7 +1848,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   // eslint-disable-next-line consistent-return
   const errorAlert = () => {
     let alertErrors: string[] = [];
-    if (!isEmpty(dbErrors)) {
+    if (dbErrors && !isEmpty(dbErrors)) {
       alertErrors =
         typeof dbErrors === 'object'
           ? Object.values(dbErrors)
