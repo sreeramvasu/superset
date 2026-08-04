@@ -156,6 +156,11 @@ class DevinAPIClient:
         if environment:
             session_data["environment"] = environment
         
+        # Add workspace persistence for faster subsequent sessions
+        # This may cache dependencies and environment setup
+        session_data["persist_workspace"] = True
+        session_data["use_cache"] = True
+        
         try:
             response = self._make_request("POST", endpoint, session_data)
             
