@@ -2,7 +2,7 @@
   "api_key": "cog_your_service_user_api_key_here",
   "org_id": "your_organization_id_here",
   "base_url": "https://api.devin.ai/v3",
-  "timeout": 3600,
-  "poll_interval": 15,
-  "max_poll_attempts": 240
+  "timeout": 1800,
+  "poll_interval": 10,
+  "max_poll_attempts": 180
 }

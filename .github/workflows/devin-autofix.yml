@@ -55,9 +55,9 @@ jobs:
             "api_key": "${{ secrets.DEVIN_API_KEY }}",
             "org_id": "${{ secrets.DEVIN_ORG_ID }}",
             "base_url": "https://api.devin.ai/v3",
-            "timeout": 3600,
-            "poll_interval": 15,
-            "max_poll_attempts": 240
+            "timeout": 1800,
+            "poll_interval": 10,
+            "max_poll_attempts": 180
           }
           EOF
 
@@ -179,12 +179,29 @@ jobs:
           ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
           
           if [ "${{ steps.devin_fix.outcome }}" == "success" ]; then
-            gh issue comment $ISSUE_NUMBER --body "Devin API Auto-Fix Completed successfully. Branch: feature/$ISSUE_NUMBER"
+            # Check if PR URL is in the comment (should be from API client)
+            LATEST_COMMENT=$(gh issue view $ISSUE_NUMBER --comments --json body --jq '.[-1].body')
+            
+            if echo "$LATEST_COMMENT" | grep -q "github.com/pull/"; then
+              # Extract PR URL from comment
+              PR_URL=$(echo "$LATEST_COMMENT" | grep -o 'https://github.com/[^/ ]*/pull/[0-9]*' | head -1)
+              gh issue comment $ISSUE_NUMBER --body "Devin API Auto-Fix Completed successfully. PR: $PR_URL"
+            else
+              gh issue comment $ISSUE_NUMBER --body "Devin API Auto-Fix Completed successfully. Branch: feature/$ISSUE_NUMBER"
+            fi
           else
             gh issue comment $ISSUE_NUMBER --body "Devin API Auto-Fix Failed. Check workflow logs for details."
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload observability logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devin-observability-logs-${{ github.run_number }}
+          path: .devin/logs/
+          retention-days: 30
 
       - name: Cleanup
         if: always()
