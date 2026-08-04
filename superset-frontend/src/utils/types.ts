@@ -21,5 +21,8 @@ export type OnlyKeyWithType<T, V> = keyof {
   [K in keyof T as NonNullable<T[K]> extends V ? K : never]: T[K];
 };
 
-export const isIterable = (obj: any): obj is Iterable<any> =>
-  obj != null && typeof obj[Symbol.iterator] === 'function';
+export function isIterable<T = unknown>(obj: unknown): obj is Iterable<T> {
+  return (
+    obj != null && typeof (obj as Iterable<T>)[Symbol.iterator] === 'function'
+  );
+}

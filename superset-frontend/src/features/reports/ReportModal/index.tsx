@@ -165,7 +165,7 @@ function ReportModal({
       : CreationMethod.Charts;
     return (
       reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
+      (EMPTY_OBJECT as ReportObject)
     );
   });
   const isEditMode = report && Object.keys(report).length;
