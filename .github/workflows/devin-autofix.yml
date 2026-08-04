@@ -55,9 +55,9 @@ jobs:
             "api_key": "${{ secrets.DEVIN_API_KEY }}",
             "org_id": "${{ secrets.DEVIN_ORG_ID }}",
             "base_url": "https://api.devin.ai/v3",
-            "timeout": 1800,
+            "timeout": 3600,
             "poll_interval": 10,
-            "max_poll_attempts": 180
+            "max_poll_attempts": 360
           }
           EOF
 
