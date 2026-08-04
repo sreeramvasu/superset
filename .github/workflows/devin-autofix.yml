@@ -165,8 +165,8 @@ jobs:
           # Check the latest comment to see if it contains a PR URL
           LATEST_COMMENT=$(gh issue view $ISSUE_NUMBER --comments --json body --jq '.[-1].body')
           
-          # Only add label if comment contains a PR URL (github.com/pull/)
-          if echo "$LATEST_COMMENT" | grep -q "github.com/pull/"; then
+          # Only add label if comment contains a PR URL (github.com/owner/repo/pull/N)
+          if echo "$LATEST_COMMENT" | grep -q "github.com/[^/ ]*/pull/"; then
             echo "PR URL found in comment - adding fixed-by-devin label"
             gh issue edit $ISSUE_NUMBER --add-label "fixed-by-devin"
           else
@@ -184,7 +184,7 @@ jobs:
             # Check if PR URL is in the comment (should be from API client)
             LATEST_COMMENT=$(gh issue view $ISSUE_NUMBER --comments --json body --jq '.[-1].body')
             
-            if echo "$LATEST_COMMENT" | grep -q "github.com/pull/"; then
+            if echo "$LATEST_COMMENT" | grep -q "github.com/[^/ ]*/pull/"; then
               # Extract PR URL from comment
               PR_URL=$(echo "$LATEST_COMMENT" | grep -o 'https://github.com/[^/ ]*/pull/[0-9]*' | head -1)
               gh issue comment $ISSUE_NUMBER --body "Devin API Auto-Fix Completed successfully. PR: $PR_URL"
