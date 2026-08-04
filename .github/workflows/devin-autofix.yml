@@ -128,6 +128,7 @@ jobs:
         id: devin_fix
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONUNBUFFERED: 1
         run: |
           ISSUE_NUMBER="${{ steps.get_issue.outputs.issue_number }}"
           ISSUE_URL="${{ github.server_url }}/${{ github.repository }}/issues/$ISSUE_NUMBER"
