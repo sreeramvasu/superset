@@ -18,6 +18,25 @@
  */
 import type { ColumnConfig, Entry } from '../../types';
 import { calculateCellValue } from '../valueCalculations/valueCalculations';
+
+type SortableValue = number | string | null | undefined;
+
+/**
+ * Props shared by the cells rendered in a TimeTable column.
+ * ValueCell provides the precomputed `value`, while Sparkline provides the
+ * data required to compute it.
+ */
+interface SortableCellProps {
+  value?: SortableValue;
+  valueField?: string;
+  column?: ColumnConfig;
+  entries?: Entry[];
+}
+
+interface SortableRow {
+  values?: Record<string, { props?: SortableCellProps } | undefined>;
+}
+
 /**
  * Simple numeric value comparison that handles null, undefined, and mixed types
  * @param a - First value to compare
@@ -26,15 +45,15 @@ import { calculateCellValue } from '../valueCalculations/valueCalculations';
  * @returns Numeric comparison result
  */
 function compareValues(
-  a: any,
-  b: any,
+  a: SortableValue,
+  b: SortableValue,
   nanTreatment: 'asSmallest' | 'asLargest' | 'alwaysLast' = 'asSmallest',
 ): number {
   const numA = typeof a === 'string' ? parseFloat(a) : a;
   const numB = typeof b === 'string' ? parseFloat(b) : b;
 
-  const isAValid = numA !== null && numA !== undefined && !Number.isNaN(numA);
-  const isBValid = numB !== null && numB !== undefined && !Number.isNaN(numB);
+  const isAValid = typeof numA === 'number' && !Number.isNaN(numA);
+  const isBValid = typeof numB === 'number' && !Number.isNaN(numB);
 
   if (!isAValid && !isBValid) return 0;
   if (!isAValid) return nanTreatment === 'asSmallest' ? -1 : 1;
@@ -54,8 +73,8 @@ function compareValues(
  * this function, so we only return the raw comparison result.
  */
 export function sortNumberWithMixedTypes(
-  rowA: any,
-  rowB: any,
+  rowA: SortableRow,
+  rowB: SortableRow,
   columnId: string,
 ) {
   const cellA = rowA.values?.[columnId];
@@ -65,23 +84,8 @@ export function sortNumberWithMixedTypes(
   // ValueCell provides the precomputed value directly.
   // Sparkline provides { valueField, column, entries } and requires
   // calculating the sortable value from its entries.
-  const propsA = cellA?.props as
-    | {
-        value?: number | null;
-        valueField?: string;
-        column?: ColumnConfig;
-        entries?: Entry[];
-      }
-    | undefined;
-
-  const propsB = cellB?.props as
-    | {
-        value?: number | null;
-        valueField?: string;
-        column?: ColumnConfig;
-        entries?: Entry[];
-      }
-    | undefined;
+  const propsA = cellA?.props;
+  const propsB = cellB?.props;
 
   if (!propsA || !propsB) {
     return 0;

@@ -21,7 +21,7 @@ import { sortNumberWithMixedTypes } from './sortUtils';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sortNumberWithMixedTypes', () => {
-  const createMockRow = (value: any) => ({
+  const createMockRow = (value: number | string | null | undefined) => ({
     values: {
       testColumn: {
         props: {

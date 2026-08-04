@@ -40,11 +40,13 @@ import type {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilterValue as FilterValue,
 } from 'src/components';
-import Chart, { Slice } from 'src/types/Chart';
+import { Chart, Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getShareableUrl } from 'src/utils/navigationUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
+import type { ReportsState } from 'src/features/reports/ReportModal/reducer';
+import type { ReportObject } from 'src/features/reports/types';
 import {
   FavoriteStatus,
   FileEncryptedExtraFields,
@@ -60,6 +62,8 @@ interface ListViewResourceState<D extends object = any> {
   bulkSelectEnabled: boolean;
   lastFetched?: string;
 }
+
+export type ResourceError = Record<string, string[] | string> | string | null;
 
 const parsedErrorMessage = (
   errorMessage: Record<string, string[] | string> | string,
@@ -262,7 +266,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: any | null;
+  error: ResourceError;
 }
 
 export function useSingleViewResource<
@@ -818,6 +822,12 @@ const transformDB = (db: Partial<DatabaseObject> | null) => {
   return db;
 };
 
+interface ValidationErrorPayload {
+  message?: string;
+  error_type?: string;
+  extra?: JsonObject;
+}
+
 export function useDatabaseValidation() {
   const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
     null,
@@ -864,7 +874,7 @@ export function useDatabaseValidation() {
                 if (err.extra?.ssh_tunnel) return true;
                 return allowed.includes(err.error_type) || onCreate;
               })
-              .reduce((acc: JsonObject, err2: any) => {
+              .reduce((acc: JsonObject, err2: ValidationErrorPayload) => {
                 const { message, extra } = err2;
 
                 if (extra?.catalog) {
@@ -953,12 +963,14 @@ export function useDatabaseValidation() {
 }
 
 export const reportSelector = (
-  state: Record<string, any>,
+  state: { reports: ReportsState },
   resourceType: string,
   resourceId?: number,
-) => {
+): ReportObject | null => {
   if (resourceId) {
-    return state.reports[resourceType]?.[resourceId];
+    return (
+      state.reports[resourceType as keyof ReportsState]?.[resourceId] ?? null
+    );
   }
   return null;
 };
