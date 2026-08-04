@@ -262,7 +262,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: any | null;
+  error: unknown;
 }
 
 export function useSingleViewResource<
@@ -864,7 +864,7 @@ export function useDatabaseValidation() {
                 if (err.extra?.ssh_tunnel) return true;
                 return allowed.includes(err.error_type) || onCreate;
               })
-              .reduce((acc: JsonObject, err2: any) => {
+              .reduce((acc: JsonObject, err2: JsonObject) => {
                 const { message, extra } = err2;
 
                 if (extra?.catalog) {
