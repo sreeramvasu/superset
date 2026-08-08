@@ -458,7 +458,8 @@ class WebDriverPlaywright(WebDriverProxy):
                 )
             except PlaywrightTimeout:
                 logger.exception(
-                    "Web event %s not detected. Page %s might not have been fully loaded",  # noqa: E501
+                    "Web event %s not detected. "
+                    "Page %s might not have been fully loaded",
                     app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                     url,
                 )
@@ -513,7 +514,8 @@ class WebDriverPlaywright(WebDriverProxy):
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
                     if unexpected_errors:
                         logger.warning(
-                            "%i errors found in the screenshot. URL: %s. Errors are: %s",  # noqa: E501
+                            "%i errors found in the screenshot. "
+                            "URL: %s. Errors are: %s",
                             len(unexpected_errors),
                             url,
                             unexpected_errors,
