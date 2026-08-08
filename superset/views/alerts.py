@@ -24,12 +24,24 @@ from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView
 
-# TODO: access control rules for this module
-
 
 class BaseAlertReportView(BaseSupersetView):
+    """
+    Base view for the alert and report SPA entry points.
+
+    Access control follows the model documented in ``SECURITY.md``: routes are
+    gated at the route level with ``@has_access`` against the
+    ``ReportSchedule`` permission, while ownership scoping of the underlying
+    objects is enforced by the REST API DAO base filters.
+    """
+
     route_base = "/report"
     class_permission_name = "ReportSchedule"
+    include_route_methods = {"list", "log"}
+    method_permission_name = {
+        "list": "read",
+        "log": "read",
+    }
 
     @expose("/list/")
     @has_access
